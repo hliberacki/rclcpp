@@ -70,13 +70,17 @@ public:
   spin() override;
 
   RCLCPP_PUBLIC
+  void
+  spin(std::chrono::nanoseconds timeout) override;
+
+  RCLCPP_PUBLIC
   size_t
   get_number_of_threads();
 
 protected:
   RCLCPP_PUBLIC
   void
-  run(size_t this_thread_number);
+  run(size_t this_thread_number, std::chrono::nanoseconds timeout = std::chrono::nanoseconds{-1});
 
 private:
   RCLCPP_DISABLE_COPY(MultiThreadedExecutor)

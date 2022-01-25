@@ -79,6 +79,10 @@ public:
   void
   spin() override;
 
+  RCLCPP_PUBLIC
+  void
+  spin(std::chrono::nanoseconds timeout) override;
+
   /// Static executor implementation of spin some
   /**
    * This non-blocking function will execute entities that

@@ -48,6 +48,19 @@ RCLCPP_PUBLIC
 void
 spin(rclcpp::Node::SharedPtr node_ptr);
 
+
+RCLCPP_PUBLIC
+void
+spin(
+  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr,
+  std::chrono::nanoseconds timeout);
+
+RCLCPP_PUBLIC
+void
+spin(
+  rclcpp::Node::SharedPtr node_ptr,
+  std::chrono::nanoseconds timeout);
+
 namespace executors
 {
 

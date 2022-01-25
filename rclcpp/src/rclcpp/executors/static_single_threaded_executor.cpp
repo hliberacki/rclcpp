@@ -41,6 +41,13 @@ StaticSingleThreadedExecutor::~StaticSingleThreadedExecutor()
 void
 StaticSingleThreadedExecutor::spin()
 {
+  spin(std::chrono::nanoseconds{-1});
+}
+
+void
+StaticSingleThreadedExecutor::spin(std::chrono::nanoseconds timeout)
+{
+  (void)timeout; //TODO: finish
   if (spinning.exchange(true)) {
     throw std::runtime_error("spin() called while already spinning");
   }

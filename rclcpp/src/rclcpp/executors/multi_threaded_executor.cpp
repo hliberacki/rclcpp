@@ -45,6 +45,12 @@ MultiThreadedExecutor::~MultiThreadedExecutor() {}
 void
 MultiThreadedExecutor::spin()
 {
+  spin(std::chrono::nanoseconds{-1});
+}
+
+void
+MultiThreadedExecutor::spin(std::chrono::nanoseconds timeout)
+{
   if (spinning.exchange(true)) {
     throw std::runtime_error("spin() called while already spinning");
   }
@@ -54,12 +60,12 @@ MultiThreadedExecutor::spin()
   {
     std::lock_guard wait_lock{wait_mutex_};
     for (; thread_id < number_of_threads_ - 1; ++thread_id) {
-      auto func = std::bind(&MultiThreadedExecutor::run, this, thread_id);
+      auto func = std::bind(&MultiThreadedExecutor::run, this, thread_id, timeout);
       threads.emplace_back(func);
     }
   }
 
-  run(thread_id);
+  run(thread_id, timeout);
   for (auto & thread : threads) {
     thread.join();
   }
@@ -72,9 +78,13 @@ MultiThreadedExecutor::get_number_of_threads()
 }
 
 void
-MultiThreadedExecutor::run(size_t this_thread_number)
+MultiThreadedExecutor::run(size_t this_thread_number, std::chrono::nanoseconds timeout)
 {
   (void)this_thread_number;
+
+  auto end_time = std::chrono::steady_clock::now() + timeout;
+  std::chrono::nanoseconds timeout_left = timeout;
+
   while (rclcpp::ok(this->context_) && spinning.load()) {
     rclcpp::AnyExecutable any_exec;
     {
@@ -82,10 +92,22 @@ MultiThreadedExecutor::run(size_t this_thread_number)
       if (!rclcpp::ok(this->context_) || !spinning.load()) {
         return;
       }
-      if (!get_next_executable(any_exec, next_exec_timeout_)) {
+
+      // Recalculate remaining timeout, this is needed to choose correct timeout for get_next_executable.
+      timeout_left = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - std::chrono::steady_clock::now());
+
+      // Always choose minimal timeout, to fetch next exectuable
+      auto current_exec_timeout = next_exec_timeout_;
+      if (timeout >= std::chrono::nanoseconds::zero()) {
+        current_exec_timeout = std::min(current_exec_timeout, timeout_left);
+      }
+
+      if (!get_next_executable(any_exec, current_exec_timeout) && std::chrono::steady_clock::now() < end_time) {
         continue;
       }
+
     }
+
     if (yield_before_execute_) {
       std::this_thread::yield();
     }

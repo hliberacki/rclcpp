@@ -25,16 +25,36 @@ SingleThreadedExecutor::SingleThreadedExecutor(const rclcpp::ExecutorOptions & o
 SingleThreadedExecutor::~SingleThreadedExecutor() {}
 
 void
-SingleThreadedExecutor::spin()
+SingleThreadedExecutor::spin() {
+  spin(std::chrono::nanoseconds{-1});
+}
+
+void
+SingleThreadedExecutor::spin(std::chrono::nanoseconds timeout)
 {
+  auto end_time = std::chrono::steady_clock::now() + timeout;
+  std::chrono::nanoseconds timeout_left = timeout;
+
   if (spinning.exchange(true)) {
     throw std::runtime_error("spin() called while already spinning");
   }
   RCPPUTILS_SCOPE_EXIT(this->spinning.store(false); );
   while (rclcpp::ok(this->context_) && spinning.load()) {
     rclcpp::AnyExecutable any_executable;
-    if (get_next_executable(any_executable)) {
+
+    if (get_next_executable(any_executable, timeout)) {
       execute_any_executable(any_executable);
     }
+    // If the original timeout is < 0, then this is blocking, never TIMEOUT.
+    if (timeout < std::chrono::nanoseconds::zero()) {
+      continue;
+    }
+    // Otherwise check if we still have time to wait, return TIMEOUT if not.
+    auto now = std::chrono::steady_clock::now();
+    if (now >= end_time) {
+      return;
+    }
+    // Subtract the elapsed time from the original timeout.
+    timeout_left = end_time - now;
   }
 }

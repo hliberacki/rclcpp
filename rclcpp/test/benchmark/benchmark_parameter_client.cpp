@@ -50,7 +50,7 @@ public:
   }
 
   void TearDown(benchmark::State &)
-  {
+  {;
     remote_executor->cancel();
     remote_context->shutdown("Test is complete");
     remote_thread.join();

@@ -30,14 +30,26 @@ rclcpp::spin_some(rclcpp::Node::SharedPtr node_ptr)
 void
 rclcpp::spin(rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr)
 {
-  rclcpp::executors::SingleThreadedExecutor exec;
-  exec.add_node(node_ptr);
-  exec.spin();
-  exec.remove_node(node_ptr);
+  rclcpp::spin(node_ptr, std::chrono::nanoseconds{-1});
 }
 
 void
 rclcpp::spin(rclcpp::Node::SharedPtr node_ptr)
 {
-  rclcpp::spin(node_ptr->get_node_base_interface());
+  rclcpp::spin(node_ptr, std::chrono::nanoseconds{-1});
+}
+
+void
+rclcpp::spin(rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr, std::chrono::nanoseconds timeout)
+{
+  rclcpp::executors::SingleThreadedExecutor exec;
+  exec.add_node(node_ptr);
+  exec.spin(timeout);
+  exec.remove_node(node_ptr);
+}
+
+void
+rclcpp::spin(rclcpp::Node::SharedPtr node_ptr, std::chrono::nanoseconds timeout)
+{
+  rclcpp::spin(node_ptr->get_node_base_interface(), timeout);
 }
