@@ -18,6 +18,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <algorithm>
 
 #include "rcpputils/scope_exit.hpp"
 
@@ -41,12 +42,6 @@ MultiThreadedExecutor::MultiThreadedExecutor(
 }
 
 MultiThreadedExecutor::~MultiThreadedExecutor() {}
-
-void
-MultiThreadedExecutor::spin()
-{
-  spin(std::chrono::nanoseconds{-1});
-}
 
 void
 MultiThreadedExecutor::spin(std::chrono::nanoseconds timeout)
@@ -85,6 +80,8 @@ MultiThreadedExecutor::run(size_t this_thread_number, std::chrono::nanoseconds t
   auto end_time = std::chrono::steady_clock::now() + timeout;
   std::chrono::nanoseconds timeout_left = timeout;
 
+  const bool is_blocking = timeout < std::chrono::nanoseconds::zero();
+
   while (rclcpp::ok(this->context_) && spinning.load()) {
     rclcpp::AnyExecutable any_exec;
     {
@@ -93,19 +90,20 @@ MultiThreadedExecutor::run(size_t this_thread_number, std::chrono::nanoseconds t
         return;
       }
 
-      // Recalculate remaining timeout, this is needed to choose correct timeout for get_next_executable.
-      timeout_left = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - std::chrono::steady_clock::now());
-
       // Always choose minimal timeout, to fetch next exectuable
       auto current_exec_timeout = next_exec_timeout_;
-      if (timeout >= std::chrono::nanoseconds::zero()) {
+      if (!is_blocking) {
+        // Recalculate remaining timeout, needed to pick correct timeout for get_next_executable.
+        timeout_left = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          end_time - std::chrono::steady_clock::now());
         current_exec_timeout = std::min(current_exec_timeout, timeout_left);
       }
 
-      if (!get_next_executable(any_exec, current_exec_timeout) && std::chrono::steady_clock::now() < end_time) {
-        continue;
+      if (!get_next_executable(any_exec, current_exec_timeout)) {
+        if (is_blocking || std::chrono::steady_clock::now() < end_time) {
+          continue;
+        }
       }
-
     }
 
     if (yield_before_execute_) {

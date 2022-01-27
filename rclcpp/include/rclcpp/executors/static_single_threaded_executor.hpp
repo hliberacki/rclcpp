@@ -72,16 +72,14 @@ public:
   /// Static executor implementation of spin.
   /**
    * This function will block until work comes in, execute it, and keep blocking.
-   * It will only be interrupted by a CTRL-C (managed by the global signal handler).
+   * It can be interrupted by a CTRL-C (managed by the global signal handler),
+   * or finished when given timeout pass.
+   * \param[in] timeout Optional timeout parameter. `-1` is block forever.
    * \throws std::runtime_error when spin() called while already spinning
    */
   RCLCPP_PUBLIC
   void
-  spin() override;
-
-  RCLCPP_PUBLIC
-  void
-  spin(std::chrono::nanoseconds timeout) override;
+  spin(std::chrono::nanoseconds timeout = std::chrono::nanoseconds{-1}) override;
 
   /// Static executor implementation of spin some
   /**

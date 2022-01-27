@@ -38,7 +38,7 @@ public:
   {
   }
 
-  void spin() override
+  void spin(std::chrono::nanoseconds) override
   {
   }
 

@@ -26,6 +26,8 @@
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
+#include <functional>
 
 #include "rcl/error_handling.h"
 #include "rcl/time.h"
@@ -194,6 +196,32 @@ TYPED_TEST(TestExecutors, spinWithTimer) {
   executor.cancel();
   spinner.join();
   executor.remove_node(this->node, true);
+}
+
+// spin with timeout
+TYPED_TEST(TestExecutors, spinWithTimeout) {
+  using ExecutorType = TypeParam;
+  ExecutorType executor;
+
+    bool timer_completed = false;
+    (void) this->node->create_wall_timer(100ms, [&]() {timer_completed = true;});
+    executor.add_node(this->node);
+
+    std::thread spinner([&]()
+      {
+        executor.spin(std::chrono::duration_cast<std::chrono::nanoseconds>(150ms));
+      });
+
+    auto start = std::chrono::steady_clock::now();
+    while (!timer_completed && (std::chrono::steady_clock::now() - start) < 10s) {
+      std::this_thread::sleep_for(1ms);
+    }
+
+    EXPECT_EQ(true, timer_completed);
+    // Cancel needs to be called before join, so that executor.spin() returns.
+    executor.cancel();
+    spinner.join();
+    executor.remove_node(this->node, true);
 }
 
 TYPED_TEST(TestExecutors, spinWhileAlreadySpinning) {

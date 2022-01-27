@@ -28,19 +28,9 @@ rclcpp::spin_some(rclcpp::Node::SharedPtr node_ptr)
 }
 
 void
-rclcpp::spin(rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr)
-{
-  rclcpp::spin(node_ptr, std::chrono::nanoseconds{-1});
-}
-
-void
-rclcpp::spin(rclcpp::Node::SharedPtr node_ptr)
-{
-  rclcpp::spin(node_ptr, std::chrono::nanoseconds{-1});
-}
-
-void
-rclcpp::spin(rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr, std::chrono::nanoseconds timeout)
+rclcpp::spin(
+  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr,
+  std::chrono::nanoseconds timeout)
 {
   rclcpp::executors::SingleThreadedExecutor exec;
   exec.add_node(node_ptr);

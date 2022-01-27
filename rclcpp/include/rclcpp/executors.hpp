@@ -39,27 +39,21 @@ void
 spin_some(rclcpp::Node::SharedPtr node_ptr);
 
 /// Create a default single-threaded executor and spin the specified node.
-/** \param[in] node_ptr Shared pointer to the node to spin. */
-RCLCPP_PUBLIC
-void
-spin(rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr);
-
-RCLCPP_PUBLIC
-void
-spin(rclcpp::Node::SharedPtr node_ptr);
-
-
+/** \param[in] node_ptr Shared pointer to the node to spin.
+ *  \param[in] timeout Optional timeout parameter.
+ *   `-1` is block forever, `0` is non-blocking.
+ */
 RCLCPP_PUBLIC
 void
 spin(
   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr,
-  std::chrono::nanoseconds timeout);
+  std::chrono::nanoseconds timeout = std::chrono::nanoseconds{-1});
 
 RCLCPP_PUBLIC
 void
 spin(
   rclcpp::Node::SharedPtr node_ptr,
-  std::chrono::nanoseconds timeout);
+  std::chrono::nanoseconds timeout = std::chrono::nanoseconds{-1});
 
 namespace executors
 {

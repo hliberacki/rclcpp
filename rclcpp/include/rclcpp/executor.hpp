@@ -81,9 +81,6 @@ public:
   /// Do work periodically as it becomes available to us. Blocking call, may block indefinitely.
   // It is up to the implementation of Executor to implement spin.
   virtual void
-  spin() = 0;
-
-  virtual void
   spin(std::chrono::nanoseconds timeout) = 0;
 
   /// Add a callback group to an executor.
@@ -319,25 +316,6 @@ public:
   RCLCPP_PUBLIC
   virtual void
   spin_once(std::chrono::nanoseconds timeout = std::chrono::nanoseconds(-1));
-
-
-  // template<typename FunctionPredicateT, typename ReturnT = typename function_traits<FunctionPredicateT>::return_type,
-  //          typename TimeRepT = int64_t, typename TimeT = std::milli>
-  // FunctionReturnT<FunctionPredicateT>::return_type
-  // spin_until_complete(
-  //   FunctionPredicateT predicate,
-  //   std::chrono::duration<TimeRepT, TimeT> timeout = std::chrono::duration<TimeRepT, TimeT>(-1))
-  // {
-  //   using ReturnCode = std::result_of_t<FunctionPredicateT>;
-
-  //   // Precheck to see if predicate is already met
-  //   if (predicate()) {
-  //     return ReturnCode::SUCCESS;
-  //   }
-
-
-
-  // }
 
   /// Spin (blocking) until the future is complete, it times out waiting, or rclcpp is interrupted.
   /**

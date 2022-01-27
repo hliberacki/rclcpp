@@ -63,11 +63,7 @@ public:
    */
   RCLCPP_PUBLIC
   void
-  spin() override;
-
-  RCLCPP_PUBLIC
-  void
-  spin(std::chrono::nanoseconds timeout) override;
+  spin(std::chrono::nanoseconds timeout = std::chrono::nanoseconds{-1}) override;
 
 private:
   RCLCPP_DISABLE_COPY(SingleThreadedExecutor)

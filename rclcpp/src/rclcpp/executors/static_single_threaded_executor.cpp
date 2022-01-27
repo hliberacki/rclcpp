@@ -39,15 +39,13 @@ StaticSingleThreadedExecutor::~StaticSingleThreadedExecutor()
 }
 
 void
-StaticSingleThreadedExecutor::spin()
-{
-  spin(std::chrono::nanoseconds{-1});
-}
-
-void
 StaticSingleThreadedExecutor::spin(std::chrono::nanoseconds timeout)
 {
-  (void)timeout; //TODO: finish
+  auto end_time = std::chrono::steady_clock::now() + timeout;
+  std::chrono::nanoseconds timeout_left = timeout;
+
+  const bool is_blocking = timeout < std::chrono::nanoseconds::zero();
+
   if (spinning.exchange(true)) {
     throw std::runtime_error("spin() called while already spinning");
   }
@@ -59,8 +57,17 @@ StaticSingleThreadedExecutor::spin(std::chrono::nanoseconds timeout)
 
   while (rclcpp::ok(this->context_) && spinning.load()) {
     // Refresh wait set and wait for work
-    entities_collector_->refresh_wait_set();
+    entities_collector_->refresh_wait_set(timeout_left);
     execute_ready_executables();
+
+    if (!is_blocking) {
+      auto now = std::chrono::steady_clock::now();
+      if (now >= end_time) {
+        return;
+      }
+      // Subtract the elapsed time from the original timeout.
+      timeout_left = end_time - now;
+    }
   }
 }
 

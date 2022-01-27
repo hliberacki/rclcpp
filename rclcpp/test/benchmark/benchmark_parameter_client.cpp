@@ -46,7 +46,10 @@ public:
       remote_node_name, rclcpp::NodeOptions().context(remote_context));
     remote_executor->add_node(remote_node);
 
-    remote_thread = std::thread(&rclcpp::executors::SingleThreadedExecutor::spin, remote_executor);
+    remote_thread = std::thread(
+      [ = ]() {
+        remote_executor->rclcpp::executors::SingleThreadedExecutor::spin();
+      });
   }
 
   void TearDown(benchmark::State &)
