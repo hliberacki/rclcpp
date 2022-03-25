@@ -294,6 +294,11 @@ TEST_F(TestExecutor, spin_some_elapsed) {
   ASSERT_TRUE(timer_called);
 }
 
+TEST_F(TestExecutor, spin_for)
+{
+
+}
+
 TEST_F(TestExecutor, spin_once_in_spin_once) {
   DummyExecutor dummy;
   auto node = std::make_shared<rclcpp::Node>("node", "ns");

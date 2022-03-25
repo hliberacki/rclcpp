@@ -54,6 +54,67 @@ namespace executors
 using rclcpp::executors::MultiThreadedExecutor;
 using rclcpp::executors::SingleThreadedExecutor;
 
+// TODO(hliberacki): add documentation
+// template<typename DurationT>
+// void
+// spin_for(
+//   rclcpp::Executor & executor,
+//   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr,
+//   DurationT timeout)
+// {
+//   executor.add_node(node_ptr);
+//   auto retcode = executor.spin_for(timeout);
+//   executor.remove_node(node_ptr);
+//   return retcode;
+// }
+
+// TODO(hliberacki): add documentation
+// template<typename NodeT = rclcpp::Node, typename DurationT>
+// void
+// spin_node_for(
+//   rclcpp::Executor & executor,
+//   std::shared_ptr<NodeT> node_ptr,
+//   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr,
+//   DurationT timeout)
+// {
+//   executor.add_node(node_ptr);
+//   auto retcode = executor.spin_for(timeout);
+//   executor.remove_node(node_ptr);
+//   return retcode;
+// }
+
+// TODO(hliberacki): Add documentation
+// /// Spin (blocking) until the condition is complete, it times out waiting, or rclcpp is interrupted.
+// template<typename Condition, typename DurationT = std::chrono::milliseconds>
+// rclcpp::FutureReturnCode spin_until_complete(
+//   rclcpp::Executor & executor,
+//   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr,
+//   Condition & condition,
+//   DurationT timeout = DurationT(-1))
+// {
+//   executor.add_node(node_ptr);
+//   auto retcode = executor.spin_until_complete(condition, timeout);
+//   executor.remove_node(node_ptr);
+//   return retcode;
+// }
+
+// template<typename NodeT = rclcpp::Node, typename Condition,
+//   typename DurationT = std::chrono::milliseconds>
+// rclcpp::FutureReturnCode
+// spin_node_until_complete(
+//   rclcpp::Executor & executor,
+//   std::shared_ptr<NodeT> node_ptr,
+//   Condition & condition,
+//   DurationT timeout = DurationT(-1))
+// {
+//   return rclcpp::executors::spin_until_complete(
+//     executor,
+//     node_ptr->get_node_base_interface(),
+//     condition,
+//     timeout);
+// }
+
+
 /// Spin (blocking) until the future is complete, it times out waiting, or rclcpp is interrupted.
 /**
  * \param[in] executor The executor which will spin the node.
@@ -121,6 +182,28 @@ spin_until_future_complete(
 {
   return rclcpp::spin_until_future_complete(node_ptr->get_node_base_interface(), future, timeout);
 }
+
+// TODO(hliberacki): Enable it
+// template<typename Condition, typename DurationT = std::chrono::milliseconds>
+// rclcpp::FutureReturnCode
+// spin_until_complete(
+//  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_ptr,
+//   Condition & condition,
+//   DurationT timeout = DurationT(-1))
+// {
+//   rclcpp::executors::SingleThreadedExecutor executor;
+//   return executor.spin_until_complete(executor, node_ptr, condition, timeout);
+// }
+
+// template<typename NodeT = rclcpp::Node, typename Condition, typename DurationT = std::chrono::milliseconds>
+// rclcpp::FutureReturnCode
+// spin_until_complete(
+//   std::shared_ptr<NodeT> node_ptr,
+//   Condition & condition,
+//   DurationT timeout = DurationT(-1))
+// {
+//   return rclcpp::spin_until_complete(node_ptr->get_node_base_interface(), condition, timeout);
+// }
 
 }  // namespace rclcpp
 
