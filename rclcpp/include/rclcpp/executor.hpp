@@ -320,51 +320,71 @@ public:
   virtual void
   spin_once(std::chrono::nanoseconds timeout = std::chrono::nanoseconds(-1));
 
-  // TODO(hliberacki): Add documentation
-  template<typename FutureT, typename DurationT = std::chrono::milliseconds,
-    // typename std::enable_if_t<
-    //   std::is_same_v<
-    //     std::remove_reference_t<FutureT>,
-    //     std::future<
-    //       decltype(std::declval<std::remove_reference_t<FutureT>>()
-    //       .get())>> ||
-    //   std::is_same_v<
-    //      std::remove_reference_t<FutureT>,
-    //      std::shared_future<
-    //        decltype(std::declval<std::remove_reference_t<FutureT>>()
-    //        .get())>>,
-    //   bool> = true>
-    typename std::enable_if_t<!std::is_invocable_v<FutureT>, bool> = true>
-  FutureReturnCode spin_until_complete(FutureT & future, DurationT timeout = DurationT(-1))
+
+  template<typename Condition, typename DurationT = std::chrono::milliseconds>
+  FutureReturnCode spin_until_complete(const Condition & condition, DurationT timeout = DurationT(-1))
   {
-    // call helper wait untill complete with lambda
-    auto checkFuture = [&future]() {
-        return future.wait_for(std::chrono::seconds(0)) ==
-               std::future_status::ready;
-      };
-    return spin_until_complete_impl(checkFuture, timeout);
+    if constexpr (std::is_invocable_v<Condition>) {
+      using RetT = std::invoke_result_t<Condition>;
+      static_assert(
+        std::is_same_v<bool, RetT>,
+        "Conditional callable has to return boolean type");
+      return spin_until_complete_impl(condition, timeout);
+    } else {
+      auto checkFuture = [&condition]() {
+          return condition.wait_for(std::chrono::seconds(0)) ==
+                 std::future_status::ready;
+        };
+      return spin_until_complete_impl(checkFuture, timeout);
+    }
   }
 
-  template<
-    typename Condition, typename DurationT = std::chrono::milliseconds,
-    typename std::enable_if_t<std::is_invocable_v<Condition>, bool> = true>
-  FutureReturnCode spin_until_complete(
-    Condition & condition,
-    DurationT timeout = DurationT(-1))
-  {
-    using RetT = decltype(std::declval<std::remove_reference_t<Condition>>()());
-    static_assert(
-      std::is_same_v<bool, RetT>,
-      "Conditional callable has to return boolean type");
-    return spin_until_complete_impl(condition, timeout);
-  }
+  // // TODO(hliberacki): Add documentation
+  // template<typename FutureT, typename DurationT = std::chrono::milliseconds,
+  //   // typename std::enable_if_t<
+  //   //   std::is_same_v<
+  //   //     std::remove_reference_t<FutureT>,
+  //   //     std::future<
+  //   //       decltype(std::declval<std::remove_reference_t<FutureT>>()
+  //   //       .get())>> ||
+  //   //   std::is_same_v<
+  //   //      std::remove_reference_t<FutureT>,
+  //   //      std::shared_future<
+  //   //        decltype(std::declval<std::remove_reference_t<FutureT>>()
+  //   //        .get())>>,
+  //   //   bool> = true>
+  //   typename std::enable_if_t<!std::is_invocable_v<FutureT>, bool> = true>
+  // FutureReturnCode spin_until_complete(FutureT & future, DurationT timeout = DurationT(-1))
+  // {
+  //   // call helper wait untill complete with lambda
+  //   auto checkFuture = [&future]() {
+  //       return future.wait_for(std::chrono::seconds(0)) ==
+  //              std::future_status::ready;
+  //     };
+  //   return spin_until_complete_impl(checkFuture, timeout);
+  // }
+
+  // template<
+  //   typename Condition, typename DurationT = std::chrono::milliseconds,
+  //   typename std::enable_if_t<std::is_invocable_v<Condition>, bool> = true>
+  // FutureReturnCode spin_until_complete(
+  //   Condition & condition,
+  //   DurationT timeout = DurationT(-1))
+  // {
+  //   using RetT = decltype(std::declval<std::remove_reference_t<Condition>>()());
+  //   static_assert(
+  //     std::is_same_v<bool, RetT>,
+  //     "Conditional callable has to return boolean type");
+  //   return spin_until_complete_impl(condition, timeout);
+  // }
+
   // TODO(hliberacki): Add documentation
   /// spin (blocking) for given amount of time
   template<typename DurationT>
   void
-  spin_for(DurationT timeout)
+  spin_for(DurationT duration)
   {
-    return spin_until_complete([]() {return false;}, timeout);
+    (void)spin_until_complete([]() {return false;}, duration);
   }
 
   /// Spin (blocking) until the future is complete, it times out waiting, or rclcpp is interrupted.
@@ -383,52 +403,7 @@ public:
     const FutureT & future,
     std::chrono::duration<TimeRepT, TimeT> timeout = std::chrono::duration<TimeRepT, TimeT>(-1))
   {
-    // TODO(wjwwood): does not work recursively; can't call spin_node_until_future_complete
-    // inside a callback executed by an executor.
-
-    // Check the future before entering the while loop.
-    // If the future is already complete, don't try to spin.
-    std::future_status status = future.wait_for(std::chrono::seconds(0));
-    if (status == std::future_status::ready) {
-      return FutureReturnCode::SUCCESS;
-    }
-
-    auto end_time = std::chrono::steady_clock::now();
-    std::chrono::nanoseconds timeout_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-      timeout);
-    if (timeout_ns > std::chrono::nanoseconds::zero()) {
-      end_time += timeout_ns;
-    }
-    std::chrono::nanoseconds timeout_left = timeout_ns;
-
-    if (spinning.exchange(true)) {
-      throw std::runtime_error("spin_until_future_complete() called while already spinning");
-    }
-    RCPPUTILS_SCOPE_EXIT(this->spinning.store(false); );
-    while (rclcpp::ok(this->context_) && spinning.load()) {
-      // Do one item of work.
-      spin_once_impl(timeout_left);
-
-      // Check if the future is set, return SUCCESS if it is.
-      status = future.wait_for(std::chrono::seconds(0));
-      if (status == std::future_status::ready) {
-        return FutureReturnCode::SUCCESS;
-      }
-      // If the original timeout is < 0, then this is blocking, never TIMEOUT.
-      if (timeout_ns < std::chrono::nanoseconds::zero()) {
-        continue;
-      }
-      // Otherwise check if we still have time to wait, return TIMEOUT if not.
-      auto now = std::chrono::steady_clock::now();
-      if (now >= end_time) {
-        return FutureReturnCode::TIMEOUT;
-      }
-      // Subtract the elapsed time from the original timeout.
-      timeout_left = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - now);
-    }
-
-    // The future did not complete before ok() returned false, return INTERRUPTED.
-    return FutureReturnCode::INTERRUPTED;
+    return spin_until_complete(future, timeout);
   }
 
   /// Cancel any running spin* function, causing it to return.
@@ -608,7 +583,7 @@ protected:
   virtual void
   spin_once_impl(std::chrono::nanoseconds timeout);
 
-private:
+protected:
   template<typename Condition, typename DurationT>
   FutureReturnCode spin_until_complete_impl(Condition condition, DurationT timeout)
   {
