@@ -587,7 +587,7 @@ TEST_F(TestExecutor, spin_until_complete_condition_already_complete) {
     rclcpp::FutureReturnCode::SUCCESS,
     dummy.spin_until_complete(future, std::chrono::milliseconds(1)));
 
-  auto condition = []() { return true; };
+  auto condition = []() {return true;};
   EXPECT_EQ(
     rclcpp::FutureReturnCode::SUCCESS,
     dummy.spin_until_complete(condition, std::chrono::milliseconds(1)));
